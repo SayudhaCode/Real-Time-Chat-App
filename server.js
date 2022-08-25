@@ -1,5 +1,6 @@
 const http = require('http')
 const querystring = require('querystring')
+const fs = require('fs')
 
 const port = process.env.PORT || 1337
 
@@ -35,10 +36,18 @@ function respondEcho(req, res) {
     }))
 }
 
+function respondStatic(req, res) {
+    const filename = `${__dirname}/public${req.url.split('/static')[1]}`
+    fs.createReadStream(filename).on('error', () => {
+        respondNotFound(req, res)
+    }).pipe(res)
+}
+
 const server = http.createServer(function (req, res) {
     if (req.url === '/') return respondText(req, res)
     if (req.url === '/json') return respondJson(req, res)
     if (req.url.match(/^\/echo/)) return respondEcho(req, res)
+    if (req.url.match(/^\/static/)) return respondStatic(req, res)
 
     respondNotFound(req, res)
 })
