@@ -1,0 +1,23 @@
+{
+  "name": "real-time-chat",
+  "version": "1.0.0",
+  "description": "reat time chat app build on node js. copyrighted by Sayudha Lukita Wibisana",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SayudhaStudio/Real-Time-Chat-App.git"
+  },
+  "author": "Sayudha Lukita Wibisana",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SayudhaStudio/Real-Time-Chat-App/issues"
+  },
+  "homepage": "https://github.com/SayudhaStudio/Real-Time-Chat-App#readme",
+  "dependencies": {
+    "express": "^4.18.1"
+  }
+}

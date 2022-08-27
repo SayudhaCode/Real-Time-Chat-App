@@ -1,56 +1,70 @@
-const http = require('http')
-const querystring = require('querystring')
-const fs = require('fs')
+const fs = require('fs');
+const express = require('express');
+const EventEmitter = require('events');
 
-const port = process.env.PORT || 1337
+const chatEmitter = new EventEmitter();
+const port = process.env.PORT || 1337;
+
+const app = express();
+
+app.get('/', respondText);
+app.get('/json', respondJson);
+app.get('/echo', respondEcho);
+app.get('/static/*', respondStatic);
+app.get('/chat', respondChat);
+app.get('/sse', respondSSE);
+
+app.listen(port, () => console.log(`Server listening on port ${port}`));
 
 function respondText(req, res) {
-    res.setHeader('Content-Type', 'Text/Plain');
-    res.end('Hi');
+	res.setHeader('Content-Type', 'text/plain');
+	res.end('hi');
 }
 
 function respondJson(req, res) {
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({text: 'hi', numbers: [1, 2, 3]}));
-}
-
-function respondNotFound(req, res) {
-    res.writeHead(404, {'Content-Type': 'Text/Plain'})
-    res.end('Not Found')
+	res.json({text: 'hi', numbers: [1, 2, 3]});
 }
 
 function respondEcho(req, res) {
-    const {input = ''} = querystring.parse(
-        req.url
-            .split('?')
-            .slice(1)
-            .join('')
-    )
+	const {input = ''} = req.query;
 
-    res.setHeader('Content-Type', 'application/json')
-    res.end(JSON.stringify({
-        normal: input,
-        shout: input.toUpperCase(),
-        characterCount: input.length,
-        backwards: input.split('').reverse().join('')
-    }))
+	res.json({
+		normal: input,
+		shouty: input.toUpperCase(),
+		characterCount: input.length,
+		backwards: input.split('').reverse().join(''),
+	});
 }
 
 function respondStatic(req, res) {
-    const filename = `${__dirname}/public${req.url.split('/static')[1]}`
-    fs.createReadStream(filename).on('error', () => {
-        respondNotFound(req, res)
-    }).pipe(res)
+	const filename = `${__dirname}/public/${req.params[0]}`;
+	fs.createReadStream(filename).
+			on('error', () => respondNotFound(req, res)).
+			pipe(res);
 }
 
-const server = http.createServer(function (req, res) {
-    if (req.url === '/') return respondText(req, res)
-    if (req.url === '/json') return respondJson(req, res)
-    if (req.url.match(/^\/echo/)) return respondEcho(req, res)
-    if (req.url.match(/^\/static/)) return respondStatic(req, res)
+function respondChat(req, res) {
+	const {message} = req.query;
 
-    respondNotFound(req, res)
-})
+	chatEmitter.emit('message', message);
+	res.end();
+}
 
-server.listen(port)
-console.log(`Server listening on port ${port}`)
+function respondSSE(req, res) {
+	res.writeHead(200, {
+		'Content-Type': 'text/event-stream',
+		'Connection': 'keep-alive',
+	});
+
+	const onMessage = msg => res.write(`data: ${msg}\n\n`);
+	chatEmitter.on('message', onMessage);
+
+	res.on('close', function() {
+		chatEmitter.off('message', onMessage);
+	});
+}
+
+function respondNotFound(req, res) {
+	res.writeHead(404, {'Content-Type': 'text/plain'});
+	res.end('Not Found');
+}
